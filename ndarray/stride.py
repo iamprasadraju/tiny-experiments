@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-
+import unittest
 
 def stride(shape: list, element_size: int) -> list:
-    strides = []
+    strides = [0] * len(shape)
 
     stride = element_size
-    for i in range(len(shape)):
-        strides.insert(0, stride)
-        stride *= shape[(len(shape) - 1) - i]
+    for i in range(len(shape) - 1, -1, -1):
+        strides[i] = stride
+        stride *= shape[i]
     
     return strides
 
+# tests
+class TestStride(unittest.TestCase):
+    def test_1d(self):
+        self.assertEqual(stride([5], 4), [4])
+
+    def test_2d(self):
+        self.assertEqual(stride([3, 4], 4), [16, 4])
+
+    def test_3d(self):
+        self.assertEqual(stride([2, 2, 4], 4), [32, 16, 4])
 
 if __name__ == "__main__":
-    shape = [3, 4]
-    element_size = 4
-    stride = stride(shape, element_size)
-    print(stride)
+    unittest.main()
