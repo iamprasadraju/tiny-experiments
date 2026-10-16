@@ -28,7 +28,8 @@ typedef struct {
 typedef struct {
   void *data;
   NDTuple shape;
-  // size_t strides;
+  NDTuple stride;
+  size_t size;
   int ndim;
   DType dtype;
 } NDArray; // creating alias as NDArray
@@ -57,10 +58,6 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
     case DTYPE_FLOAT64: element_size = sizeof(float64); break;
   }
 
-
-  // arr.strides = element_size;
-
-
   // total elements in ndarray (*arr.shape)
   size_t total_elements = 1;
   for (int i = 0; i < arr.ndim; i++) {
@@ -68,6 +65,7 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
     total_elements *= arr.shape.data[i];
     
   }
+  arr.size = total_elements;
 
   arr.data = malloc(element_size * total_elements);
 
@@ -75,7 +73,28 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
   if (arr.data == NULL){
     free(arr.shape.data);
     arr.shape.data = NULL;
-  }  
+  }
+
+
+    
+  // stride calculation
+
+  arr.stride.len = arr.ndim;
+  arr.stride.data = malloc(arr.ndim * sizeof(size_t));
+
+  size_t stride = element_size;
+  for(int i = arr.ndim - 1; i >= 0; i--){
+    arr.stride.data[i] = stride;
+    stride *= arr.shape.data[i];
+  }
+
+  /*
+  // print strides
+
+  for(int i = 0; i < arr.stride.len; i++){
+    printf("%zu ", arr.stride.data[i]);
+  }
+  */
   
   return arr;
 }
@@ -88,8 +107,7 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
 
 
 void ndarray_index_get(NDArray arr, NDTuple index){
-  // dimension check
-  if(arr.ndim != index.len){ return; }
+  if(arr.ndim != index.len){ return; } // dimension check
 
   // individual index co-ordinate check 
   for(size_t i = 0; i < arr.ndim; i++){
@@ -99,14 +117,15 @@ void ndarray_index_get(NDArray arr, NDTuple index){
       return;
     }
   }
-  
+    
+  // pointer arithmetic  
   
 }
 
 // ndarray_index_set(NDArray arr, size_t value, size_t *index){
 
 int main(){
-  NDTuple shape = NDtuple(3, 7, 10);
+  NDTuple shape = NDtuple(3, 4);
   
   NDArray myarr = ndarray_create(DTYPE_FLOAT64, shape);
   
