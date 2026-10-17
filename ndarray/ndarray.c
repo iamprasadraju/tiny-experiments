@@ -2,7 +2,6 @@
 #include <stdlib.h>
 // #include <malloc/malloc.h>
 
-
 // name mapping(alias) for better convention
 typedef _Float16 float16;
 typedef float float32;
@@ -19,7 +18,7 @@ typedef struct {
   size_t len;
 } NDTuple;
 
-typedef union{
+typedef union {
   float16 f16;
   float32 f32;
   float64 f64;
@@ -28,13 +27,14 @@ typedef union{
 typedef struct {
   DType dtype;
   NDFloat value;
-} NDScaler; 
+} NDScaler;
 
 // macro
-#define NDtuple(...) (NDTuple){ \
-  .data = (size_t[]){__VA_ARGS__}, \
-  .len = sizeof((size_t[]){__VA_ARGS__}) / sizeof(size_t) \
-}
+#define NDtuple(...)                                                           \
+  (NDTuple) {                                                                  \
+    .data = (size_t[]){__VA_ARGS__},                                           \
+    .len = sizeof((size_t[]){__VA_ARGS__}) / sizeof(size_t)                    \
+  }
 
 typedef struct {
   void *data;
@@ -45,8 +45,7 @@ typedef struct {
   DType dtype;
 } NDArray; // creating alias as NDArray
 
-
-NDArray ndarray_create(DType dtype, NDTuple shape){
+NDArray ndarray_create(DType dtype, NDTuple shape) {
   NDArray arr;
   arr.ndim = shape.len;
   arr.dtype = dtype;
@@ -57,16 +56,22 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
   arr.shape.len = shape.len;
   arr.shape.data = malloc(arr.ndim * sizeof(size_t)); // deep copy
 
-  if (arr.shape.data == NULL){
+  if (arr.shape.data == NULL) {
     arr.data = NULL;
     return arr;
   }
-    
+
   size_t element_size = sizeof(double);
   switch (dtype) {
-    case DTYPE_FLOAT16: element_size = sizeof(float16); break;
-    case DTYPE_FLOAT32: element_size = sizeof(float32); break;
-    case DTYPE_FLOAT64: element_size = sizeof(float64); break;
+  case DTYPE_FLOAT16:
+    element_size = sizeof(float16);
+    break;
+  case DTYPE_FLOAT32:
+    element_size = sizeof(float32);
+    break;
+  case DTYPE_FLOAT64:
+    element_size = sizeof(float64);
+    break;
   }
 
   // total elements in ndarray (*arr.shape)
@@ -74,105 +79,144 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
   for (int i = 0; i < arr.ndim; i++) {
     arr.shape.data[i] = shape.data[i];
     total_elements *= arr.shape.data[i];
-    
   }
   arr.size = total_elements;
 
   arr.data = malloc(element_size * total_elements);
 
   // for allocation failure
-  if (arr.data == NULL){
+  if (arr.data == NULL) {
     free(arr.shape.data);
     arr.shape.data = NULL;
   }
-    
+
   // stride calculation
 
   arr.stride.len = arr.ndim;
   arr.stride.data = malloc(arr.ndim * sizeof(size_t));
 
   size_t stride = element_size;
-  for(int i = arr.ndim - 1; i >= 0; i--){
+  for (int i = arr.ndim - 1; i >= 0; i--) {
     arr.stride.data[i] = stride;
     stride *= arr.shape.data[i];
   }
-  
+
   // print strides
 
-  /* 
+  /*
   for(int i = 0; i < arr.stride.len; i++){
     printf("%zu ", arr.stride.data[i]);
   }
   */
-  
+
   return arr;
 }
-
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 // Indexing (Pointer Arithmetic)
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-void *get_index_ptr_address(NDArray arr, NDTuple index){
+void *get_index_ptr_address(NDArray arr, NDTuple index) {
   size_t offset = 0;
 
-  for(size_t i = 0; i < arr.stride.len; i++){
-    offset += arr.stride.data[i] * index.data[i];  
+  for (size_t i = 0; i < arr.stride.len; i++) {
+    offset += arr.stride.data[i] * index.data[i];
   }
 
-  // printf("%p", (char *)(arr.data) + offset); 
+  // printf("%p", (char *)(arr.data) + offset);
   // typecast to char for pointer arthimetic by compiler since data in void type
-  return (char *)arr.data + offset; 
+  return (char *)arr.data + offset;
 }
 
-NDScaler ndarray_index_get(NDArray arr, NDTuple index){
-  NDScaler scalar = { .dtype = arr.dtype };
-  if(arr.ndim != index.len){ return scalar;} // dimension check
-
-  // individual index co-ordinate check 
-  for(size_t i = 0; i < arr.ndim; i++){
-    if(index.data[i] > arr.shape.data[i]){
-      fprintf(stderr, "Error: Index %zu is outside bounds for dimension %zu (Size: %zu).\n", 
-                    index.data[i], i, arr.shape.data[i]);
+NDScaler ndarray_index_get(NDArray arr, NDTuple index) {
+  NDScaler scalar = {.dtype = arr.dtype};
+  if (arr.ndim != index.len) {
     return scalar;
+  } // dimension check
+
+  // individual index co-ordinate check
+  for (size_t i = 0; i < arr.ndim; i++) {
+    if (index.data[i] > arr.shape.data[i]) {
+      fprintf(
+          stderr,
+          "Error: Index %zu is outside bounds for dimension %zu (Size: %zu).\n",
+          index.data[i], i, arr.shape.data[i]);
+      return scalar;
     }
   }
-    void *ptr = get_index_ptr_address(arr, index);
+  void *ptr = get_index_ptr_address(arr, index);
 
-    switch (arr.dtype) { 
-        case DTYPE_FLOAT16:
-           scalar.value.f16 = *(float16 *)ptr;
-           break;
-        case DTYPE_FLOAT32:
-            scalar.value.f32 = *(float32 *)ptr;
-        case DTYPE_FLOAT64:
-            scalar.value.f64 = *(float64 *)ptr;
+  switch (arr.dtype) {
+  case DTYPE_FLOAT16:
+    scalar.value.f16 = *(float16 *)ptr;
+    break;
+  case DTYPE_FLOAT32:
+    scalar.value.f32 = *(float32 *)ptr;
+  case DTYPE_FLOAT64:
+    scalar.value.f64 = *(float64 *)ptr;
+  }
+
+  return scalar;
+}
+
+void print_ndarray(NDArray arr) {
+  NDTuple index = {.data = calloc(arr.ndim, sizeof(size_t)), .len = arr.ndim};
+
+  for (size_t i = 0; i < arr.size; i++) {
+
+    NDScaler value = ndarray_index_get(arr, index);
+
+    switch (arr.dtype) {
+    case DTYPE_FLOAT16:
+      printf("%f ", (double)value.value.f16);
+      break;
+
+    case DTYPE_FLOAT32:
+      printf("%f ", (double)value.value.f32);
+      break;
+
+    case DTYPE_FLOAT64:
+      printf("%f ", value.value.f64);
+      break;
     }
 
-    return scalar;
-    }
-
-
-// ndarray_index_set(NDArray arr, size_t value, size_t *index){
-
-int main(){
-  NDTuple shape = NDtuple(3, 4);
-  
-  NDArray myarr = ndarray_create(DTYPE_FLOAT64, shape);
-  
-  // malloc_size() func to get size of malloc memory block
-  // printf("%lu", malloc_size(myarr.data)); 
-
-  for(int i = 0; i < shape.data[0]; i++){
-      for(int j = 0; j < shape.data[1]; j++){
-          NDScaler value = ndarray_index_get(myarr, NDtuple(i, j));
-          printf("%f", value.value.f64);
+    // start from last demension
+    for (int d = arr.ndim - 1; d >= 0; d--) {
+      index.data[d]++;
+      if (index.data[d] < arr.shape.data[d]) {
+        break;
       }
+      index.data[d] = 0;
+    }
+    // Start a new line after each row.
+    if (arr.ndim >= 2 && (i + 1) % arr.shape.data[arr.ndim - 1] == 0) {
+      printf("\n");
+    }
+
+    // Separate 2D slices in a 3D array.
+    if (arr.ndim == 3 &&
+        (i + 1) % (arr.shape.data[1] * arr.shape.data[2]) == 0 &&
+        i + 1 < arr.size) {
+      printf("\n");
+    }
   }
-  
-  
-  
+
+  free(index.data);
+}
+
+// TODO: ndarray_index_set(NDArray arr, size_t value, size_t *index)
+
+int main() {
+  NDTuple shape = NDtuple(3, 10, 10);
+
+  NDArray myarr = ndarray_create(DTYPE_FLOAT64, shape);
+
+  // malloc_size() func to get size of malloc memory block
+  // printf("%lu", malloc_size(myarr.data));
+
+  print_ndarray(myarr);
   free(myarr.data);
   free(myarr.shape.data);
+  free(myarr.stride.data);
   return 0;
 }
