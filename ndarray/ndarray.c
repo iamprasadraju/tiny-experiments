@@ -41,7 +41,7 @@ typedef struct {
   NDTuple shape;
   NDTuple stride;
   size_t size;
-  int ndim;
+  size_t ndim;
   DType dtype;
 } NDArray; // creating alias as NDArray
 
@@ -76,7 +76,7 @@ NDArray ndarray_create(DType dtype, NDTuple shape) {
 
   // total elements in ndarray (*arr.shape)
   size_t total_elements = 1;
-  for (int i = 0; i < arr.ndim; i++) {
+  for (size_t i = 0; i < arr.ndim; i++) {
     arr.shape.data[i] = shape.data[i];
     total_elements *= arr.shape.data[i];
   }
@@ -101,10 +101,10 @@ NDArray ndarray_create(DType dtype, NDTuple shape) {
     stride *= arr.shape.data[i];
   }
 
-  // print strides
+  // print_t strides
 
   /*
-  for(int i = 0; i < arr.stride.len; i++){
+  for(size_t i = 0; i < arr.stride.len; i++){
     printf("%zu ", arr.stride.data[i]);
   }
   */
@@ -113,7 +113,7 @@ NDArray ndarray_create(DType dtype, NDTuple shape) {
 }
 
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-// Indexing (Pointer Arithmetic)
+// Indexing (Posize_ter Arithmetic)
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 void *get_index_ptr_address(NDArray arr, NDTuple index) {
@@ -124,7 +124,7 @@ void *get_index_ptr_address(NDArray arr, NDTuple index) {
   }
 
   // printf("%p", (char *)(arr.data) + offset);
-  // typecast to char for pointer arthimetic by compiler since data in void type
+  // typecast to char for posize_ter arthimetic by compiler since data in void type
   return (char *)arr.data + offset;
 }
 
@@ -159,7 +159,7 @@ NDScaler ndarray_index_get(NDArray arr, NDTuple index) {
   return scalar;
 }
 
-void print_ndarray(NDArray arr) {
+void print_t_ndarray(NDArray arr) {
   NDTuple index = {.data = calloc(arr.ndim, sizeof(size_t)), .len = arr.ndim};
 
   for (size_t i = 0; i < arr.size; i++) {
@@ -214,7 +214,7 @@ int main() {
   // malloc_size() func to get size of malloc memory block
   // printf("%lu", malloc_size(myarr.data));
 
-  print_ndarray(myarr);
+  print_t_ndarray(myarr);
   free(myarr.data);
   free(myarr.shape.data);
   free(myarr.stride.data);
