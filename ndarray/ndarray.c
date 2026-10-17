@@ -2,6 +2,8 @@
 #include <stdlib.h>
 // #include <malloc/malloc.h>
 
+
+// name mapping(alias) for better convention
 typedef _Float16 float16;
 typedef float float32;
 typedef double float64;
@@ -12,12 +14,21 @@ typedef enum {
   DTYPE_FLOAT64, // 2
 } DType;
 
-
 typedef struct {
   size_t *data;
   size_t len;
 } NDTuple;
 
+typedef union{
+  float16 f16;
+  float32 f32;
+  float64 f64;
+} NDFloat;
+
+typedef struct {
+  DType dtype;
+  NDFloat value;
+} NDScaler; 
 
 // macro
 #define NDtuple(...) (NDTuple){ \
@@ -74,8 +85,6 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
     free(arr.shape.data);
     arr.shape.data = NULL;
   }
-
-
     
   // stride calculation
 
@@ -87,10 +96,10 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
     arr.stride.data[i] = stride;
     stride *= arr.shape.data[i];
   }
-
-  /*
+  
   // print strides
 
+  /* 
   for(int i = 0; i < arr.stride.len; i++){
     printf("%zu ", arr.stride.data[i]);
   }
@@ -104,23 +113,45 @@ NDArray ndarray_create(DType dtype, NDTuple shape){
 // Indexing (Pointer Arithmetic)
 // =-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+void *get_index_ptr_address(NDArray arr, NDTuple index){
+  size_t offset = 0;
 
+  for(size_t i = 0; i < arr.stride.len; i++){
+    offset += arr.stride.data[i] * index.data[i];  
+  }
 
-void ndarray_index_get(NDArray arr, NDTuple index){
-  if(arr.ndim != index.len){ return; } // dimension check
+  // printf("%p", (char *)(arr.data) + offset); 
+  // typecast to char for pointer arthimetic by compiler since data in void type
+  return (char *)arr.data + offset; 
+}
+
+NDScaler ndarray_index_get(NDArray arr, NDTuple index){
+  NDScaler scalar = { .dtype = arr.dtype };
+  if(arr.ndim != index.len){ return scalar;} // dimension check
 
   // individual index co-ordinate check 
   for(size_t i = 0; i < arr.ndim; i++){
     if(index.data[i] > arr.shape.data[i]){
       fprintf(stderr, "Error: Index %zu is outside bounds for dimension %zu (Size: %zu).\n", 
                     index.data[i], i, arr.shape.data[i]);
-      return;
+    return scalar;
     }
   }
-    
-  // pointer arithmetic  
-  
-}
+    void *ptr = get_index_ptr_address(arr, index);
+
+    switch (arr.dtype) { 
+        case DTYPE_FLOAT16:
+           scalar.value.f16 = *(float16 *)ptr;
+           break;
+        case DTYPE_FLOAT32:
+            scalar.value.f32 = *(float32 *)ptr;
+        case DTYPE_FLOAT64:
+            scalar.value.f64 = *(float64 *)ptr;
+    }
+
+    return scalar;
+    }
+
 
 // ndarray_index_set(NDArray arr, size_t value, size_t *index){
 
@@ -132,9 +163,14 @@ int main(){
   // malloc_size() func to get size of malloc memory block
   // printf("%lu", malloc_size(myarr.data)); 
 
-  NDTuple index = NDtuple(3, 6, 9);
+  for(int i = 0; i < shape.data[0]; i++){
+      for(int j = 0; j < shape.data[1]; j++){
+          NDScaler value = ndarray_index_get(myarr, NDtuple(i, j));
+          printf("%f", value.value.f64);
+      }
+  }
   
-  ndarray_index_get(myarr, index);
+  
   
   free(myarr.data);
   free(myarr.shape.data);
