@@ -1,7 +1,7 @@
 import random
 import unittest
 
-N = 100
+N = 1024
 
 A = [[random.randint(1, 100) for i in range(N)]for j in range(N)]
 B = [[random.randint(1, 100) for i in range(N)]for j in range(N)]

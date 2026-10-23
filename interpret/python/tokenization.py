@@ -5,7 +5,7 @@ def read(file_path):
         with open(file_path, "r") as source: return source.read().strip()
     except: source.close()
 
-def tokenize(code: str):
+def tokenizer(code: str):
     tokens = []
     lines = code.split("\n")
     indent = [" " * 4]
@@ -15,7 +15,22 @@ def tokenize(code: str):
     return tokens
 
 if __name__ == "__main__":
-    for token in tokenize(read("source.py")):
-        print(token)
+    file = "source.py"
 
+    ts = tokenizer(read(file))
+
+    for t in ts:
+        print(t)
+
+    print("\n ------------------ \n")
+
+        
+    import tokenize
+    from io import BytesIO
     
+    
+    code = read(file)
+    code_bytes = code.encode('utf-8')    
+    tokens = tokenize.tokenize(BytesIO(code_bytes).readline)
+    for token in tokens:
+        print(token)

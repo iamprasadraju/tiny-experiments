@@ -47,6 +47,6 @@ clock_speed = format_info("Clock Speed", f"Min={min_cs} MHz, Max={max_cs} MHz ")
 print(clock_speed)
 
 
+# cache hierarchy (l1, l2, l3)
 
-
-    
+# Become a project -> https://github.com/iamprasadraju/cpuperf 
